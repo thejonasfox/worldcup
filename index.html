@@ -240,27 +240,56 @@ function extractScores(markets){
 // ── Poisson model ─────────────────────────────────────────────────────────────
 function poissonPMF(lam,k){if(lam<=0)return k===0?1:0;let v=Math.exp(-lam);for(let i=1;i<=k;i++)v*=lam/i;return v;}
 
-function fitPoisson(marketProbs,ml,totalGoals){
-  const MAX=8,mu=Math.max(totalGoals,1.5);
-  const hw=ml.home+0.5*ml.draw,aw=ml.away+0.5*ml.draw,ratio=aw>0?hw/aw:1;
-  const mu_a=mu/(1+ratio),mu_h=mu-mu_a;
-  const grid={};
-  for(let h=0;h<=MAX;h++)for(let a=0;a<=MAX;a++)grid[`${h}-${a}`]=poissonPMF(mu_h,h)*poissonPMF(mu_a,a);
-  if(Object.keys(marketProbs).length){
-    for(let iter=0;iter<5;iter++){
-      for(const[key,mp] of Object.entries(marketProbs)){
-        if((grid[key]||0)<=0)continue;
-        const scale=Math.pow(mp/grid[key],0.4);
-        const[h,a]=key.split('-').map(Number);
-        for(let h2=0;h2<=MAX;h2++)grid[`${h2}-${a}`]*=Math.pow(scale,0.5);
-        for(let a2=0;a2<=MAX;a2++)grid[`${h}-${a2}`]*=Math.pow(scale,0.5);
-      }
-      const t=Object.values(grid).reduce((s,v)=>s+v,0);
-      if(t>0)for(const k in grid)grid[k]/=t;
+function buildScoreDistribution(marketProbs, ml, totalGoals) {
+  // Strategy:
+  // 1. Use raw market prices for listed scores as-is (they are live, liquid, correct)
+  // 2. Use Poisson only to estimate the shape of unlisted scores
+  // 3. Unlisted scores share whatever probability mass remains: max(0, 1 - sum(listed))
+  // 4. If listed prices sum >= 1 (common during live games), unlisted scores get 0
+
+  const MAX = 8;
+
+  // Step 1: compute raw Poisson grid from moneyline for shape only
+  const mu = Math.max(totalGoals, 1.5);
+  const hw = ml.home + 0.5 * ml.draw, aw = ml.away + 0.5 * ml.draw;
+  const ratio = aw > 0 ? hw / aw : 1;
+  const mu_a = mu / (1 + ratio), mu_h = mu - mu_a;
+  const poissonGrid = {};
+  let poissonTotal = 0;
+  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
+    const p = poissonPMF(mu_h, h) * poissonPMF(mu_a, a);
+    poissonGrid[`${h}-${a}`] = p;
+    poissonTotal += p;
+  }
+  // Normalise Poisson grid to sum to 1
+  for(const k in poissonGrid) poissonGrid[k] /= poissonTotal;
+
+  // Step 2: listed scores use their raw market prices
+  const listedSum = Object.values(marketProbs).reduce((s, v) => s + v, 0);
+
+  // Step 3: remaining mass for unlisted scores
+  const unlistedMass = Math.max(0, 1 - listedSum);
+
+  // Step 4: Poisson weight of all unlisted scores (for proportional allocation)
+  let unlistedPoissonSum = 0;
+  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
+    if(!marketProbs[`${h}-${a}`]) unlistedPoissonSum += poissonGrid[`${h}-${a}`];
+  }
+
+  // Step 5: build final grid
+  const grid = {};
+  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
+    const key = `${h}-${a}`;
+    if(marketProbs[key] !== undefined) {
+      // Listed score: use raw market price
+      grid[key] = marketProbs[key];
+    } else {
+      // Unlisted score: proportional share of remaining mass
+      grid[key] = unlistedMass > 0 && unlistedPoissonSum > 0
+        ? (poissonGrid[key] / unlistedPoissonSum) * unlistedMass
+        : 0;
     }
   }
-  const t=Object.values(grid).reduce((s,v)=>s+v,0);
-  if(t>0)for(const k in grid)grid[k]/=t;
   return grid;
 }
 
@@ -330,7 +359,8 @@ async function go(){
   // 3. Fit Poisson and compute EP
   const marketProbs={};
   for(const s of rawScores)marketProbs[`${s.home}-${s.away}`]=s.prob;
-  const grid=fitPoisson(marketProbs,ml,ml.total_goals);
+  const listedSum=Object.values(marketProbs).reduce((s,v)=>s+v,0);
+  const grid=buildScoreDistribution(marketProbs,ml,ml.total_goals);
   const allScores=Object.entries(grid)
     .filter(([,p])=>p>0.0001)
     .map(([key,p])=>{const[h,a]=key.split('-').map(Number);return{label:key,home:h,away:a,prob:p,market_prob:marketProbs[key]||0};})
@@ -342,7 +372,8 @@ async function go(){
     return{...pred,ep,bd};
   }).sort((a,b)=>b.ep-a.ep);
 
-  st(`✓ Loaded · ${evTitle||sl} · ${scored.length} scores · worker ${WORKER_URL.replace('https://','')}`);  
+  const listedPct=(listedSum*100).toFixed(0);const unlistedNote=listedSum>=1?' · market sum ≥100% (live game), unlisted scores excluded':` · ${(100-listedSum*100).toFixed(0)}% mass to unlisted scores`;
+  st(`✓ Loaded · ${evTitle||sl} · ${rawScores.length} listed + ${scored.length-rawScores.length} Poisson scores${unlistedNote}`);
   render(scored,homeName,awayName,evVolume);
 }
 
