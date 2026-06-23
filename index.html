@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<lang="en">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>World Cup prediction optimizer</title>
@@ -38,7 +38,6 @@ button:hover{background:var(--bg2)}button:active{transform:scale(.98)}
 .err{color:#A32D2D}.load{color:var(--blue)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:-1px}
-/* result */
 .mh{text-align:center;padding:.5rem 0 1rem}
 .mt{font-size:22px;font-weight:500;margin-bottom:3px}
 .mm{font-size:13px;color:var(--t2)}
@@ -49,48 +48,36 @@ button:hover{background:var(--bg2)}button:active{transform:scale(.98)}
 .mval.blue{color:var(--blue)}.mval.teal{color:var(--teal)}
 .banner{background:var(--bluebg);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:1rem;font-size:14px}
 .banner strong{color:var(--bluedark)}
-/* EP breakdown */
 .epbox{border:.5px solid var(--bd);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:1.25rem}
 .ep-title{font-size:11px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.65rem}
 .ep-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.65rem}
 .ep-cell{border-radius:var(--r);padding:8px 4px;text-align:center}
 .ep-pct{font-size:17px;font-weight:500}
 .ep-x{font-size:11px;margin:2px 0}
-.ep-contrib{font-size:13px;font-weight:500}
 .ep-lbl{font-size:10px;margin-top:2px}
 .ep-eq{font-size:12px;color:var(--t2);font-family:monospace;background:var(--bg2);padding:.45rem .7rem;border-radius:6px}
 .ep-eq strong{color:var(--t)}
-/* bars */
 .sl{font-size:11px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--t2);margin-bottom:.6rem}
 .legend span{display:flex;align-items:center;gap:4px}
 .dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
 .bars{display:flex;flex-direction:column;gap:3px}
-.br{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 5px;border-radius:5px;transition:background .1s}
-.br:hover,.br.sel{background:var(--bluebg)}
+.br{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 5px;border-radius:5px}
 .blbl{width:44px;font-weight:500;flex-shrink:0;font-variant-numeric:tabular-nums}
 .btrack{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;display:flex;gap:1px}
 .bseg{height:100%;flex-shrink:0}
 .bprob{width:42px;text-align:right;font-size:12px;color:var(--t2);flex-shrink:0}
 .bep{width:36px;text-align:right;font-weight:500;font-size:12px;flex-shrink:0}
-/* tabs */
 .tabs{display:flex;margin-bottom:1rem;border-bottom:.5px solid var(--bd)}
 .tab{font-size:13px;padding:6px 14px;border:none;border-bottom:2px solid transparent;background:none;color:var(--t2);cursor:pointer;height:auto;border-radius:0}
 .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 .tp{display:none}.tp.active{display:block}
-/* grid */
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}
 .mtx{border-collapse:collapse;font-size:12px;width:100%;margin-top:.5rem}
 .mtx th{padding:4px 8px;color:var(--t2);font-size:11px;font-weight:500;text-align:center;background:var(--bg2)}
 .mtx td{padding:5px 7px;border:.5px solid var(--bd);cursor:pointer;text-align:center;min-width:62px;transition:filter .1s}
-.mtx td:hover{filter:brightness(.88)}
-.mc-score{font-size:12px;font-weight:500}
-.mc-ep{font-size:11px;color:var(--blue);font-weight:500}
-.mc-prob{font-size:10px;color:var(--t3)}
-.mc-dot{color:var(--teal);font-size:9px;margin-left:2px}
-.sc{border:.5px solid var(--bd);border-radius:var(--r);padding:6px 8px;cursor:pointer;transition:border-color .1s,background .1s}
-.sc:hover{border-color:var(--bd2);background:var(--bg2)}.sc.best{border:2px solid var(--blue)}.sc.sel{background:var(--bluebg)}
-.cs{font-size:14px;font-weight:500}.cp{font-size:11px;color:var(--t2);margin-top:1px}.ce{font-size:11px;font-weight:500;margin-top:1px}.ce.top{color:var(--blue)}
+.mtx td:hover{filter:brightness(.88)}.mtx td.sel{outline:2px solid var(--blue)}
+.mc-score{font-size:12px;font-weight:500}.mc-ep{font-size:11px;color:var(--blue);font-weight:500}
+.mc-prob{font-size:10px;color:var(--t3)}.mc-dot{color:var(--teal);font-size:9px;margin-left:2px}
 #app{display:none}
 </style>
 </head>
@@ -106,235 +93,199 @@ button:hover{background:var(--bg2)}button:active{transform:scale(.98)}
       </div>
       <button class="primary" onclick="go()">↻ Load</button>
     </div>
-    <div class="hint">Paste any Polymarket URL or slug.</div>
+    <div class="hint">Paste any Polymarket World Cup URL or slug.</div>
     <div class="ql" id="ql"></div>
   </div>
   <div id="st" class="status"></div>
   <div id="app"></div>
 </div>
 <script>
-// ── Set this to your Cloudflare Worker URL after deploying ───────────────────
 const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
-// ─────────────────────────────────────────────────────────────────────────────
 
-async function fetchViaWorker(path) {
-  const url = `${WORKER_URL}/proxy?path=${encodeURIComponent(path)}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${path}`);
-  return r.json();
-}
-
-// Full group-stage schedule — date format YYYY-MM-DD
+// ── Schedule ──────────────────────────────────────────────────────────────────
 const SCHEDULE = [
-  ['2026-06-11','mex','bih'], ['2026-06-12','arg','can'], ['2026-06-12','mar','prt'],
-  ['2026-06-13','esp','sui'], ['2026-06-13','ecu','ger'], ['2026-06-14','bra','kor'],
-  ['2026-06-14','usa','tur'], ['2026-06-15','jpn','swe'], ['2026-06-15','fra','hat'],
-  ['2026-06-15','rsa','uru'], ['2026-06-16','pol','bel'], ['2026-06-16','irl','civ'],
-  ['2026-06-16','alg','ksa'], ['2026-06-17','aut','jor'], ['2026-06-17','eng','ind'],
-  ['2026-06-17','ned','sen'], ['2026-06-18','mex','cze'], ['2026-06-18','prt','pan'],
-  ['2026-06-18','aus','gha'], ['2026-06-19','esp','ury'], ['2026-06-19','sui','cam'],
-  ['2026-06-19','col','ukr'], ['2026-06-20','nor','den'], ['2026-06-20','cro','tha'],
-  ['2026-06-20','tun','per'], ['2026-06-21','jpn','bra'], ['2026-06-21','usa','par'],
-  ['2026-06-21','rsa','mar'], ['2026-06-22','arg','aut'], ['2026-06-22','fra','irq'],
-  ['2026-06-22','nor','sen'], ['2026-06-22','jor','alg'],
-  ['2026-06-23','prt','uzb'], ['2026-06-23','eng','gha'], ['2026-06-23','pan','hrv'],
-  ['2026-06-23','col','cod'],
-  ['2026-06-24','sui','can'], ['2026-06-24','bih','qat'], ['2026-06-24','sco','bra'],
-  ['2026-06-24','mar','hat'], ['2026-06-24','cze','mex'], ['2026-06-24','rsa','kor'],
-  ['2026-06-25','ecu','ger'], ['2026-06-25','civ','cur'], ['2026-06-25','jpn','swe'],
-  ['2026-06-25','tun','ned'],
-  ['2026-06-26','tur','usa'], ['2026-06-26','par','aus'], ['2026-06-26','nor','fra'],
-  ['2026-06-26','sen','irq'],
-  ['2026-06-27','arg','sco'], ['2026-06-27','bra','mar'], ['2026-06-27','ger','jpn'],
-  ['2026-06-27','swe','tun'], ['2026-06-27','aut','jor'], ['2026-06-27','alg','nzl'],
-  ['2026-06-28','usa','par'], ['2026-06-28','aus','tur'], ['2026-06-28','eng','pan'],
-  ['2026-06-28','cro','gha'], ['2026-06-28','prt','col'], ['2026-06-28','uzb','cod'],
-  ['2026-06-29','qat','sco'], ['2026-06-29','bra','hat'], ['2026-06-29','kor','mex'],
-  ['2026-06-29','rsa','cze'], ['2026-06-29','ned','jpn'], ['2026-06-29','tun','swe'],
-  ['2026-06-30','can','bih'], ['2026-06-30','sui','qat'], ['2026-06-30','ger','cur'],
-  ['2026-06-30','ecu','civ'],
+  ['2026-06-22','arg','aut'],['2026-06-22','fra','irq'],['2026-06-22','nor','sen'],['2026-06-22','jor','alg'],
+  ['2026-06-23','prt','uzb'],['2026-06-23','eng','gha'],['2026-06-23','pan','hrv'],['2026-06-23','col','cod'],
+  ['2026-06-24','sui','can'],['2026-06-24','bih','qat'],['2026-06-24','sco','bra'],['2026-06-24','mar','hat'],['2026-06-24','cze','mex'],['2026-06-24','rsa','kor'],
+  ['2026-06-25','ecu','ger'],['2026-06-25','civ','cur'],['2026-06-25','jpn','swe'],['2026-06-25','tun','ned'],
+  ['2026-06-26','tur','usa'],['2026-06-26','par','aus'],['2026-06-26','nor','fra'],['2026-06-26','sen','irq'],
+  ['2026-06-27','arg','sco'],['2026-06-27','bra','mar'],['2026-06-27','ger','jpn'],['2026-06-27','swe','tun'],['2026-06-27','aut','jor'],['2026-06-27','alg','nzl'],
+  ['2026-06-28','usa','par'],['2026-06-28','aus','tur'],['2026-06-28','eng','pan'],['2026-06-28','cro','gha'],['2026-06-28','prt','col'],['2026-06-28','uzb','cod'],
+  ['2026-06-29','qat','sco'],['2026-06-29','bra','hat'],['2026-06-29','kor','mex'],['2026-06-29','rsa','cze'],['2026-06-29','ned','jpn'],['2026-06-29','tun','swe'],
+  ['2026-06-30','can','bih'],['2026-06-30','sui','qat'],['2026-06-30','ger','cur'],['2026-06-30','ecu','civ'],
 ];
 
-// Build and render quick-match pills for today + next 3 days
+// ── Quick pills ───────────────────────────────────────────────────────────────
 (function(){
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() + 4);
-
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  function fmtDay(d){ return DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]; }
-  function slugDate(d){
-    const m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
-    return `${d.getFullYear()}-${m}-${dd}`;
-  }
-
-  const relevant = SCHEDULE.filter(([date])=>{
-    const d=new Date(date+'T12:00:00'); return d>=today && d<cutoff;
-  });
-
-  if(!relevant.length){
-    document.getElementById('ql').innerHTML='<span style="font-size:12px;color:var(--t3)">No matches scheduled in the next 4 days</span>';
-    return;
-  }
-
-  let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>', lastDay='';
-  for(const [date,home,away] of relevant){
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+4);
+  const relevant=SCHEDULE.filter(([d])=>{const x=new Date(d+'T12:00:00');return x>=today&&x<cutoff;});
+  if(!relevant.length){document.getElementById('ql').innerHTML='<span style="font-size:12px;color:var(--t3)">No matches in next 4 days</span>';return;}
+  let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>',last='';
+  for(const [date,hm,aw] of relevant){
     const d=new Date(date+'T12:00:00');
-    const dayLabel = (d.getTime()===today.getTime()?'Today':fmtDay(d)+' '+d.getDate()+' '+MONTHS[d.getMonth()]);
-    if(dayLabel!==lastDay){h+=`<div class="ql-day">${dayLabel}</div>`;lastDay=dayLabel;}
-    const slug=`fifwc-${home}-${away}-${date}`;
-    h+=`<button class="qlb" onclick="ls('${slug}')">${home.toUpperCase()} vs ${away.toUpperCase()}</button>`;
+    const lbl=d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
+    if(lbl!==last){h+=`<div class="ql-day">${lbl}</div>`;last=lbl;}
+    h+=`<button class="qlb" onclick="ls('fifwc-${hm}-${aw}-${date}')">${hm.toUpperCase()} vs ${aw.toUpperCase()}</button>`;
   }
   document.getElementById('ql').innerHTML=h;
-
-  // Auto-load the first match of today if input is still the old default
-  const si=document.getElementById('si');
-  const firstToday=relevant.find(([date])=>new Date(date+'T12:00:00').getTime()===today.getTime());
-  if(firstToday){
-    const [date,home,away]=firstToday;
-    si.value=`fifwc-${home}-${away}-${date}`;
-  }
+  const first=relevant.find(([d])=>new Date(d+'T12:00:00').getTime()===today.getTime());
+  if(first) document.getElementById('si').value=`fifwc-${first[1]}-${first[2]}-${first[0]}`;
 })();
 
-function ls(s){document.getElementById('si').value=s;go()}
-function getSlug(v){v=v.trim();const m=v.match(/fifwc-[a-z0-9-]+/i);return m?m[0].toLowerCase():v.replace(/\/$/,'').split('/').pop().toLowerCase()}
-function st(m,c=''){const e=document.getElementById('st');e.className='status '+c;e.innerHTML=m}
-function sgn(n){return n>0?1:n<0?-1:0}
+function ls(s){document.getElementById('si').value=s;go();}
+function getSlug(v){v=v.trim();const m=v.match(/fifwc-[a-z0-9-]+/i);return m?m[0].toLowerCase():v.replace(/\/$/,'').split('/').pop().toLowerCase();}
+function st(m,c=''){const e=document.getElementById('st');e.className='status '+c;e.innerHTML=m;}
+function sgn(n){return n>0?1:n<0?-1:0;}
 function mtype(p,a){
   if(p[0]===a[0]&&p[1]===a[1])return'exact';
   if(p[0]-p[1]===a[0]-a[1])return'goalDiff';
   if(sgn(p[0]-p[1])===sgn(a[0]-a[1]))return'winner';
-  return null}
-function pts(p,a){const t=mtype(p,a);return t==='exact'?4:t==='goalDiff'?3:t==='winner'?2:0}
+  return null;}
+function pts(p,a){const t=mtype(p,a);return t==='exact'?4:t==='goalDiff'?3:t==='winner'?2:0;}
 
-// ── Score extraction (mirrors Python logic) ──────────────────────────────────
+// ── Polymarket data fetching ──────────────────────────────────────────────────
+async function proxyFetch(path){
+  const r=await fetch(`${WORKER_URL}/proxy?path=${encodeURIComponent(path)}`);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
 function extractScores(markets){
   const scores=[];
-  // Multi-outcome market
   for(const m of markets){
     try{
       const outcomes=JSON.parse(m.outcomes||'[]');
       const prices=JSON.parse(m.outcomePrices||'[]').map(Number);
       const hits=outcomes.filter(o=>/^\d+-\d+$/.test(o));
       if(hits.length>3){
-        for(const o of hits){
-          const[h,a]=o.split('-').map(Number);
-          scores.push({label:o,home:h,away:a,prob:prices[outcomes.indexOf(o)]||0,market_prob:prices[outcomes.indexOf(o)]||0});
-        }
+        for(const o of hits){const[h,a]=o.split('-').map(Number);scores.push({label:o,home:h,away:a,prob:prices[outcomes.indexOf(o)]||0,market_prob:prices[outcomes.indexOf(o)]||0});}
         return scores;
       }
     }catch{}
   }
-  // Individual Yes/No markets
   for(const m of markets){
     try{
-      const slug=m.slug||'';
-      const marker='-exact-score-';
-      const idx=slug.indexOf(marker);
+      const slug=m.slug||'',marker='-exact-score-',idx=slug.indexOf(marker);
       let sm=null;
-      if(idx>=0){
-        const part=slug.slice(idx+marker.length);
-        const mm=part.match(/^(\d{1,2})-(\d{1,2})$/);
-        if(mm) sm=[+mm[1],+mm[2]];
-      }
-      if(!sm){
-        const mm=(m.question||'').match(/(\d+)\s*-\s*(\d+)/);
-        if(mm) sm=[+mm[1],+mm[2]];
-      }
-      if(!sm) continue;
-      const outcomes=JSON.parse(m.outcomes||'[]');
-      const prices=JSON.parse(m.outcomePrices||'[]').map(Number);
+      if(idx>=0){const pt=slug.slice(idx+marker.length),mm=pt.match(/^(\d{1,2})-(\d{1,2})$/);if(mm)sm=[+mm[1],+mm[2]];}
+      if(!sm){const mm=(m.question||'').match(/(\d+)\s*-\s*(\d+)/);if(mm)sm=[+mm[1],+mm[2]];}
+      if(!sm)continue;
+      const outcomes=JSON.parse(m.outcomes||'[]'),prices=JSON.parse(m.outcomePrices||'[]').map(Number);
       const yi=outcomes.findIndex(o=>o.toLowerCase()==='yes');
-      const prob=prices[yi>=0?yi:0]||0;
-      const label=`${sm[0]}-${sm[1]}`;
-      if(!scores.find(s=>s.label===label))
-        scores.push({label,home:sm[0],away:sm[1],prob,market_prob:prob});
+      const prob=prices[yi>=0?yi:0]||0,label=`${sm[0]}-${sm[1]}`;
+      if(!scores.find(s=>s.label===label))scores.push({label,home:sm[0],away:sm[1],prob,market_prob:prob});
     }catch{}
   }
   return scores;
 }
 
-function poissonPMF(lam,k){
-  if(lam<=0) return k===0?1:0;
-  let v=Math.exp(-lam);
-  for(let i=1;i<=k;i++) v*=lam/i;
-  return v;
-}
+// ── Poisson model ─────────────────────────────────────────────────────────────
+function poissonPMF(lam,k){if(lam<=0)return k===0?1:0;let v=Math.exp(-lam);for(let i=1;i<=k;i++)v*=lam/i;return v;}
 
-function fitPoisson(marketProbs, ml, totalGoals){
-  const MAX=8;
-  const mu=Math.max(totalGoals,1.5);
-  const hw=ml.home+0.5*ml.draw, aw=ml.away+0.5*ml.draw;
-  const ratio=aw>0?hw/aw:1;
-  const mu_a=mu/(1+ratio), mu_h=mu-mu_a;
+function fitPoisson(marketProbs,ml,totalGoals){
+  const MAX=8,mu=Math.max(totalGoals,1.5);
+  const hw=ml.home+0.5*ml.draw,aw=ml.away+0.5*ml.draw,ratio=aw>0?hw/aw:1;
+  const mu_a=mu/(1+ratio),mu_h=mu-mu_a;
   const grid={};
-  for(let h=0;h<=MAX;h++) for(let a=0;a<=MAX;a++)
-    grid[h+'-'+a]=poissonPMF(mu_h,h)*poissonPMF(mu_a,a);
+  for(let h=0;h<=MAX;h++)for(let a=0;a<=MAX;a++)grid[`${h}-${a}`]=poissonPMF(mu_h,h)*poissonPMF(mu_a,a);
   if(Object.keys(marketProbs).length){
     for(let iter=0;iter<5;iter++){
       for(const[key,mp] of Object.entries(marketProbs)){
-        if((grid[key]||0)<=0) continue;
+        if((grid[key]||0)<=0)continue;
         const scale=Math.pow(mp/grid[key],0.4);
         const[h,a]=key.split('-').map(Number);
-        for(let h2=0;h2<=MAX;h2++) grid[h2+'-'+a]*=Math.pow(scale,0.5);
-        for(let a2=0;a2<=MAX;a2++) grid[h+'-'+a2]*=Math.pow(scale,0.5);
+        for(let h2=0;h2<=MAX;h2++)grid[`${h2}-${a}`]*=Math.pow(scale,0.5);
+        for(let a2=0;a2<=MAX;a2++)grid[`${h}-${a2}`]*=Math.pow(scale,0.5);
       }
       const t=Object.values(grid).reduce((s,v)=>s+v,0);
-      if(t>0) for(const k in grid) grid[k]/=t;
+      if(t>0)for(const k in grid)grid[k]/=t;
     }
   }
   const t=Object.values(grid).reduce((s,v)=>s+v,0);
-  if(t>0) for(const k in grid) grid[k]/=t;
+  if(t>0)for(const k in grid)grid[k]/=t;
   return grid;
 }
 
+// ── Main fetch + model pipeline ───────────────────────────────────────────────
 async function go(){
   const sl=getSlug(document.getElementById('si').value);
-  st('<span class="spin"></span>Fetching from Polymarket + fitting Poisson model…','load');
+  const exactSlug=sl.endsWith('-exact-score')?sl:sl+'-exact-score';
+  const baseSlug=sl.endsWith('-exact-score')?sl.slice(0,-13):sl;
+  st('<span class="spin"></span>Fetching Polymarket data…','load');
   document.getElementById('app').style.display='none';
-  let data;
-  try{const r=await fetch(`${WORKER_URL}/proxy?path=/events/slug/${encodeURIComponent(sl+'-exact-score')}`);data=await r.json();}
-  catch(e){st('Server error: '+e,'err');return}
-  // Build Poisson-calibrated full distribution from raw exact-score prices
+
+  // 1. Fetch exact-score event
+  let rawScores=[],evTitle='',evVolume=0;
+  try{
+    const ev=await proxyFetch(`/events/slug/${exactSlug}`);
+    evTitle=ev.title||'';evVolume=ev.volume||0;
+    rawScores=extractScores(ev.markets||[]);
+    if(!rawScores.length&&ev.id){
+      const mkts=await proxyFetch(`/markets?event_id=${ev.id}&limit=300`);
+      if(Array.isArray(mkts))rawScores=extractScores(mkts);
+    }
+  }catch(e){st(`⚠ Could not reach Polymarket: ${e.message}`,'err');return;}
+  if(!rawScores.length){st(`⚠ No exact-score markets found for "${sl}". Try another match.`,'err');return;}
+
+  // 2. Fetch moneyline from main event
+  st('<span class="spin"></span>Fitting Poisson model…','load');
+  const slugParts=baseSlug.match(/fifwc-([a-z]+)-([a-z]+)-/i);
+  const homeCode=slugParts?slugParts[1].toLowerCase():'';
+  const awayCode=slugParts?slugParts[2].toLowerCase():'';
+  let ml={home:0.5,draw:0.25,away:0.25,total_goals:2.5};
+  let homeName=homeCode.toUpperCase(),awayName=awayCode.toUpperCase();
+  try{
+    const mainEv=await proxyFetch(`/events/slug/${baseSlug}`);
+    if(!evTitle)evTitle=mainEv.title||'';
+    if(!evVolume)evVolume=mainEv.volume||0;
+    const titleClean=(evTitle||mainEv.title||'').replace(/ - Exact Score$/i,'');
+    const tp=titleClean.split(/\s+(?:vs\.?|–|-|—)\s+/i);
+    if(tp[0])homeName=tp[0].trim();
+    if(tp[1])awayName=tp[1].trim();
+    evTitle=titleClean;
+    for(const m of (mainEv.markets||[])){
+      const q=(m.question||'').toLowerCase();
+      try{
+        const outcomes=JSON.parse(m.outcomes||'[]'),prices=JSON.parse(m.outcomePrices||'[]').map(Number);
+        const yi=outcomes.findIndex(o=>o.toLowerCase()==='yes'),p=prices[yi>=0?yi:0]||0;
+        if(q.includes('draw'))ml.draw=p;
+        else if(q.includes('win')){if(homeCode&&q.includes(homeCode))ml.home=p;else if(awayCode&&q.includes(awayCode))ml.away=p;}
+        if(q.includes('2.5')&&q.includes('over')){const yi2=outcomes.findIndex(o=>o.toLowerCase()==='yes');if(yi2>=0)ml.total_goals=2.5+(prices[yi2]-0.5)*2;}
+      }catch{}
+    }
+  }catch(e){/* use default ML */}
+
+  // 3. Fit Poisson and compute EP
   const marketProbs={};
-  for(const s of data.scores) marketProbs[s.home+'-'+s.away]=s.prob;
-  const grid=fitPoisson(marketProbs, data.moneyline, data.moneyline.total_goals);
-  const scores=Object.entries(grid)
+  for(const s of rawScores)marketProbs[`${s.home}-${s.away}`]=s.prob;
+  const grid=fitPoisson(marketProbs,ml,ml.total_goals);
+  const allScores=Object.entries(grid)
     .filter(([,p])=>p>0.0001)
-    .map(([key,p])=>{
-      const[h,a]=key.split('-').map(Number);
-      return{label:key,home:h,away:a,prob:p,
-             market_prob:marketProbs[key]||0};
-    }).sort((a,b)=>b.prob-a.prob);
-  // Parse team names from title
-  const titleClean=(data.title||sl).replace(/ - Exact Score$/i,'');
-  const tp=titleClean.split(/\s+(?:vs\.?|–|-|—)\s+/i);
-  data.home=tp[0]?.trim()||data._baseSlug.split('-')[1]?.toUpperCase()||'Home';
-  data.away=tp[1]?.trim()||data._baseSlug.split('-')[2]?.toUpperCase()||'Away';
-  data.title=titleClean;
-  data.volume=data.volume||0;
-  const scored=scores.map(pred=>{
-    let ep=0;
-    for(const a of scores)ep+=pts([pred.home,pred.away],[a.home,a.away])*a.prob;
-    return{...pred,ep};
+    .map(([key,p])=>{const[h,a]=key.split('-').map(Number);return{label:key,home:h,away:a,prob:p,market_prob:marketProbs[key]||0};})
+    .sort((a,b)=>b.prob-a.prob);
+  const scored=allScores.map(pred=>{
+    let ep=0;for(const a of allScores)ep+=pts([pred.home,pred.away],[a.home,a.away])*a.prob;
+    const bd={exact:0,goalDiff:0,winner:0,none:0};
+    for(const a of allScores){const t=mtype([pred.home,pred.away],[a.home,a.away]);bd[t||'none']+=a.prob;}
+    return{...pred,ep,bd};
   }).sort((a,b)=>b.ep-a.ep);
-  const title=(data.title||sl).replace(/ - Exact Score$/i,'');
-  st(`Loaded · ${title} · Poisson model over ${scored.length} scores`);
-  render(scored,data.home||'Home',data.away||'Away',data.volume);
+
+  st(`Loaded · ${evTitle||sl} · ${scored.length} scores`);
+  render(scored,homeName,awayName,evVolume);
 }
 
+// ── Render ────────────────────────────────────────────────────────────────────
 function render(scores,home,away,vol){
-  const best=scores[0];
-  const vs=vol?'$'+(+vol/1e6).toFixed(1)+'M':'—';
-  // Market-listed scores (have a market_prob > 0)
-  const listedCount=scores.filter(s=>s.market_prob>0).length;
+  const best=scores[0],vs=vol?'$'+(+vol/1e6).toFixed(1)+'M':'—';
+  const listed=scores.filter(s=>s.market_prob>0).length;
   document.getElementById('app').style.display='block';
   document.getElementById('app').innerHTML=`
     <div class="card">
       <div class="mh"><div class="mt">${home} vs ${away}</div>
-        <div class="mm">${listedCount} Polymarket scores + Poisson model for all others · ${vs} vol</div></div>
+        <div class="mm">${listed} Polymarket scores + Poisson model · ${vs} vol</div></div>
       <div class="metrics">
         <div class="metric"><div class="mlbl">Best prediction</div><div class="mval blue">${best.label}</div></div>
         <div class="metric"><div class="mlbl">Max expected pts</div><div class="mval teal">${best.ep.toFixed(2)}</div></div>
@@ -343,7 +294,7 @@ function render(scores,home,away,vol){
       </div>
       <div class="banner">
         <strong>Optimal pick: ${best.label}</strong> — ${home} ${best.home}, ${away} ${best.away}<br>
-        Model probability ${(best.prob*100).toFixed(1)}%${best.market_prob>0?' · Polymarket: '+(best.market_prob*100).toFixed(1)+'%':' · (unlisted — Poisson estimate)'} · Expected points <strong>${best.ep.toFixed(2)}</strong>
+        Model prob ${(best.prob*100).toFixed(1)}%${best.market_prob>0?' · Polymarket: '+(best.market_prob*100).toFixed(1)+'%':' · (Poisson estimate)'} · Expected points <strong>${best.ep.toFixed(2)}</strong>
       </div>
       <div class="epbox" id="epbox"></div>
       <div class="tabs">
@@ -351,41 +302,35 @@ function render(scores,home,away,vol){
         <button class="tab" onclick="doTab(event,'grid')">Score grid</button>
       </div>
       <div id="tab-bars" class="tp active">
-        <div class="sl">Expected points — top 40 &nbsp;<span style="font-size:10px;font-weight:400;color:var(--t3)">stacked: blue=4pts exact · green=3pts goal diff · amber=2pts winner · hover segments to see contributing scores</span></div>
+        <div class="sl">Expected points — top 40 <span style="font-size:10px;font-weight:400;color:var(--t3)">blue=4pts · green=3pts goal diff · amber=2pts winner</span></div>
         <div class="legend">
-          <span><span class="dot" style="background:#185FA5"></span>4 pts – exact score</span>
-          <span><span class="dot" style="background:#1D9E75"></span>3 pts – same goal diff</span>
-          <span><span class="dot" style="background:#BA7517"></span>2 pts – correct winner</span>
+          <span><span class="dot" style="background:#185FA5"></span>4 pts – exact</span>
+          <span><span class="dot" style="background:#1D9E75"></span>3 pts – goal diff</span>
+          <span><span class="dot" style="background:#BA7517"></span>2 pts – winner</span>
         </div>
         <div class="bars" id="bars"></div>
       </div>
-      <div id="tab-grid" class="tp"><div class="sl">Score matrix — rows = home goals (→ ${home}), cols = away goals (→ ${away}) &nbsp;<span style='font-size:10px;font-weight:400;color:var(--t3)'>● = listed on Polymarket · click any cell</span></div><div id="grid"></div></div>
+      <div id="tab-grid" class="tp">
+        <div class="sl">Score matrix — home goals (rows, ${home}) vs away goals (cols, ${away}) <span style="font-size:10px;font-weight:400;color:var(--t3)">● Polymarket · click cell</span></div>
+        <div id="grid"></div>
+      </div>
     </div>`;
   window._sc=scores;window._h=home;window._a=away;
-  showEP(best);
-  drawBars(scores.slice(0,40));
-  drawGrid(scores);
+  showEP(best);drawBars(scores.slice(0,40));drawGrid(scores);
 }
 
 function showEP(s){
-  const sc=window._sc;
-  // Collect contributing scores per bucket
-  const buckets={exact:[],goalDiff:[],winner:[],none:[]};
+  const sc=window._sc,buckets={exact:[],goalDiff:[],winner:[],none:[]};
   let bd={exact:0,goalDiff:0,winner:0,none:0};
-  for(const x of sc){
-    const t=mtype([s.home,s.away],[x.home,x.away])||'none';
-    bd[t]+=x.prob;
-    buckets[t].push(x);
-  }
+  for(const x of sc){const t=mtype([s.home,s.away],[x.home,x.away])||'none';bd[t]+=x.prob;buckets[t].push(x);}
   const e4=bd.exact*4,e3=bd.goalDiff*3,e2=bd.winner*2,tot=e4+e3+e2;
-  // Format contributing scores list
   const fmt=(arr,n)=>arr.sort((a,b)=>b.prob-a.prob).slice(0,n)
     .map(x=>`<span style="white-space:nowrap">${x.label} <span style="color:var(--t3)">${(x.prob*100).toFixed(1)}%${x.market_prob>0?' ●':''}</span></span>`).join(' · ');
   const mktNote=s.market_prob>0
-    ?`Polymarket price: <strong>${(s.market_prob*100).toFixed(1)}%</strong> · Model: <strong>${(s.prob*100).toFixed(1)}%</strong>`
-    :`<em>Not listed on Polymarket — probability from Poisson model: <strong>${(s.prob*100).toFixed(1)}%</strong></em>`;
+    ?`Polymarket: <strong>${(s.market_prob*100).toFixed(1)}%</strong> · Model: <strong>${(s.prob*100).toFixed(1)}%</strong>`
+    :`<em>Poisson estimate: <strong>${(s.prob*100).toFixed(1)}%</strong></em>`;
   document.getElementById('epbox').innerHTML=`
-    <div class="ep-title">E[pts] predicting <strong style="color:var(--blue);text-transform:none;font-size:14px">${s.label}</strong>
+    <div class="ep-title">E[pts] for <strong style="color:var(--blue);text-transform:none;font-size:14px">${s.label}</strong>
       &nbsp;<span style="font-size:11px;font-weight:400;color:var(--t2)">${mktNote}</span></div>
     <div class="ep-cells">
       <div class="ep-cell" style="background:var(--bluebg)">
@@ -410,86 +355,55 @@ function showEP(s){
       </div>
     </div>
     <div class="ep-eq">${(bd.exact*100).toFixed(1)}%×4 + ${(bd.goalDiff*100).toFixed(1)}%×3 + ${(bd.winner*100).toFixed(1)}%×2 = <strong>${tot.toFixed(2)} pts</strong>
-      &nbsp;<span style="color:var(--t3);font-size:11px">● = listed on Polymarket</span></div>`;}
+      &nbsp;<span style="color:var(--t3);font-size:11px">● = Polymarket listed</span></div>`;}
 
 function drawBars(sc){
-  const all=window._sc;
-  const max=sc[0]?.ep||1;
-  const PTS={exact:4,goalDiff:3,winner:2};
-  const COL={exact:'#185FA5',goalDiff:'#1D9E75',winner:'#BA7517'};
-  document.getElementById('bars').innerHTML=sc.map((s,i)=>{
-    const idx=all.indexOf(s);
-    // Compute EP contribution per bucket
+  const all=window._sc,max=sc[0]?.ep||1,PTS={exact:4,goalDiff:3,winner:2};
+  document.getElementById('bars').innerHTML=sc.map(s=>{
     const seg={exact:0,goalDiff:0,winner:0};
     for(const a of all){const t=mtype([s.home,s.away],[a.home,a.away]);if(t)seg[t]+=a.prob*PTS[t];}
-    const ep=(seg.exact+seg.goalDiff+seg.winner);
-    // Width of each coloured segment as % of track (track = maxEP wide)
-    const w=v=>(v/max*100).toFixed(2);
-    // Tooltip: which actual scores fall in each bucket
-    const tip=bucket=>all.filter(a=>mtype([s.home,s.away],[a.home,a.away])===bucket)
-      .sort((a,b)=>b.prob-a.prob).slice(0,6).map(a=>`${a.label} ${(a.prob*100).toFixed(1)}%`).join(', ')||'none';
-    // Total P(correct winner, any margin) for tooltip
-    const pWin=all.filter(a=>mtype([s.home,s.away],[a.home,a.away])==='winner').reduce((t,a)=>t+a.prob,0);
-    const pExact=all.filter(a=>mtype([s.home,s.away],[a.home,a.away])==='exact').reduce((t,a)=>t+a.prob,0);
-    const pGD=all.filter(a=>mtype([s.home,s.away],[a.home,a.away])==='goalDiff').reduce((t,a)=>t+a.prob,0);
+    const ep=seg.exact+seg.goalDiff+seg.winner,w=v=>(v/max*100).toFixed(2);
+    const tip=b=>all.filter(a=>mtype([s.home,s.away],[a.home,a.away])===b).sort((a,b)=>b.prob-a.prob).slice(0,6).map(a=>`${a.label} ${(a.prob*100).toFixed(1)}%`).join(', ')||'none';
     return`<div class="br">
       <div class="blbl">${s.label}</div>
       <div class="btrack">
-        <div class="bseg" style="width:${w(seg.exact)}%;background:#185FA5"
-          title="4 pts — exact score\nP(${s.label})=${(pExact*100).toFixed(1)}%\n${tip('exact')}"></div>
-        <div class="bseg" style="width:${w(seg.goalDiff)}%;background:#1D9E75"
-          title="3 pts — same goal difference (±${s.home-s.away})\nP(same GD)=${(pGD*100).toFixed(1)}%\n${tip('goalDiff')}"></div>
-        <div class="bseg" style="width:${w(seg.winner)}%;background:#BA7517"
-          title="2 pts — correct winner, different GD\nP(winner, other GD)=${(pWin*100).toFixed(1)}%\n${tip('winner')}"></div>
+        <div class="bseg" style="width:${w(seg.exact)}%;background:#185FA5" title="4pts exact: ${tip('exact')}"></div>
+        <div class="bseg" style="width:${w(seg.goalDiff)}%;background:#1D9E75" title="3pts goal diff: ${tip('goalDiff')}"></div>
+        <div class="bseg" style="width:${w(seg.winner)}%;background:#BA7517" title="2pts winner: ${tip('winner')}"></div>
       </div>
       <div class="bprob">${(s.prob*100).toFixed(1)}%</div>
       <div class="bep">${ep.toFixed(2)}</div></div>`;
   }).join('');}
 
 function drawGrid(sc){
-  const all=window._sc;
-  // Build lookup by (home, away)
-  const lookup={};
-  let maxEP=0;
-  sc.forEach(s=>{lookup[s.home+'-'+s.away]=s; if(s.ep>maxEP)maxEP=s.ep;});
-  const best=sc[0];
-
-  // Find max goals represented
+  const all=window._sc,lookup={},best=sc[0];
+  const maxProb=Math.max(...sc.map(s=>s.prob),0.001);
+  sc.forEach(s=>lookup[`${s.home}-${s.away}`]=s);
   const maxG=Math.max(...sc.map(s=>Math.max(s.home,s.away)));
-
-  // Header row: away goals 0..maxG
-  let html='<div style="font-size:11px;color:var(--t2);margin-bottom:.5rem">'+
-    '<span style="display:inline-block;width:40px;height:10px;background:rgba(24,95,165,0.55);border-radius:2px;margin-right:4px;vertical-align:middle"></span>High probability &nbsp;'+
-    '<span style="display:inline-block;width:40px;height:10px;background:rgba(24,95,165,0.05);border-radius:2px;margin-right:4px;vertical-align:middle;border:.5px solid #ccc"></span>Low probability &nbsp;'+
-    '● = listed on Polymarket</div>'+
-    '<div style="overflow-x:auto"><table class="mtx"><thead><tr>';
-  html+='<th style="background:none;border:none"></th>';
-  for(let a=0;a<=maxG;a++) html+=`<th>${a}<br><span style="font-size:9px;color:var(--t3)">away</span></th>`;
+  let html='<div style="font-size:11px;color:var(--t2);margin-bottom:.5rem">'
+    +'<span style="display:inline-block;width:36px;height:9px;background:rgba(24,95,165,0.55);border-radius:2px;margin-right:4px;vertical-align:middle"></span>High prob &nbsp;'
+    +'<span style="display:inline-block;width:36px;height:9px;background:rgba(24,95,165,0.05);border-radius:2px;margin-right:4px;vertical-align:middle;border:.5px solid #ccc"></span>Low prob &nbsp;'
+    +'● = Polymarket listed</div>'
+    +'<div style="overflow-x:auto"><table class="mtx"><thead><tr><th style="background:none;border:none"></th>';
+  for(let a=0;a<=maxG;a++)html+=`<th>${a}<br><span style="font-size:9px;color:var(--t3)">away</span></th>`;
   html+='</tr></thead><tbody>';
-
   for(let h=maxG;h>=0;h--){
     html+=`<tr><th>${h}<br><span style="font-size:9px;color:var(--t3)">home</span></th>`;
     for(let a=0;a<=maxG;a++){
-      const s=lookup[h+'-'+a];
+      const s=lookup[`${h}-${a}`];
       if(!s){html+='<td></td>';continue;}
-      const isBest=(s.label===best.label);
-      const listed=s.market_prob>0;
-      // Colour by probability: white→blue heatmap, intensity = prob / maxProb
-      const maxProb=Math.max(...sc.map(s=>s.prob),0.001);
-      const t=s.prob/maxProb; // 0..1
-      const bg=`rgba(24,95,165,${(t*0.55).toFixed(3)})`; // deeper blue = higher prob
+      const isBest=s.label===best.label,t=s.prob/maxProb;
+      const bg=`rgba(24,95,165,${(t*0.55).toFixed(3)})`;
       html+=`<td style="background:${bg};${isBest?'outline:2px solid var(--blue);outline-offset:-2px;':''}"
-        onclick="pickScore(this,${all.indexOf(s)})" title="${s.label}: ${(s.prob*100).toFixed(1)}% prob, ${s.ep.toFixed(2)} ep${listed?' (Polymarket ●)':''}">
-        <div class="mc-score">${s.label}${listed?'<span class="mc-dot">●</span>':''}</div>
+        onclick="pickScore(this,${all.indexOf(s)})" title="${s.label}: ${(s.prob*100).toFixed(1)}% · ${s.ep.toFixed(2)} ep">
+        <div class="mc-score">${s.label}${s.market_prob>0?'<span class="mc-dot">●</span>':''}</div>
         <div class="mc-ep">${s.ep.toFixed(2)}</div>
-        <div class="mc-prob">${(s.prob*100).toFixed(1)}%</div>
-      </td>`;
+        <div class="mc-prob">${(s.prob*100).toFixed(1)}%</div></td>`;
     }
     html+='</tr>';
   }
   html+='</tbody></table></div>';
-  document.getElementById('grid').innerHTML=html;
-}
+  document.getElementById('grid').innerHTML=html;}
 
 function doTab(e,t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -497,10 +411,9 @@ function doTab(e,t){
   document.getElementById('tab-'+t).classList.add('active');e.target.classList.add('active');}
 
 function pickScore(el,idx){
-  document.querySelectorAll('.br,.mtx td').forEach(x=>x.classList.remove('sel'));
+  document.querySelectorAll('.mtx td').forEach(x=>x.classList.remove('sel'));
   if(el)el.classList.add('sel');
-  const s=window._sc[idx];
-  if(!s)return;
+  const s=window._sc[idx];if(!s)return;
   showEP(s);
   document.getElementById('epbox').scrollIntoView({behavior:'smooth',block:'nearest'});}
 
