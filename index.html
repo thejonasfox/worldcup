@@ -89,7 +89,7 @@ button:hover{background:var(--bg2)}button:active{transform:scale(.98)}
     <div class="row">
       <div class="ig">
         <label for="si">Polymarket match URL or slug</label>
-        <input id="si" type="text" value="fifwc-arg-aut-2026-06-22"/>
+        <input id="si" type="text" placeholder="Loading next match…"/>
       </div>
       <button class="primary" onclick="go()">↻ Load</button>
     </div>
@@ -123,33 +123,43 @@ const SCHEDULE_FALLBACK = [
 ];
 
 function renderQuickPills(matches) {
-  // matches = [{slug, title, date}, ...]
+  // matches = [{slug, title, date, active?}, ...]
+  // When coming from the dynamic API, active=true means not yet resolved.
+  // When coming from fallback, we filter by date only.
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const today=new Date(); today.setHours(0,0,0,0);
+  const now=new Date();
+  const today=new Date(now); today.setHours(0,0,0,0);
   const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+4);
 
-  const relevant = matches.filter(m => {
-    const d = new Date(m.date+'T12:00:00'); return d>=today && d<cutoff;
-  }).sort((a,b) => a.date.localeCompare(b.date));
+  // Show matches in the next 4 days — sort by date
+  const relevant = matches
+    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d>=today && d<cutoff; })
+    .sort((a,b) => a.date.localeCompare(b.date));
 
   if(!relevant.length){
     document.getElementById('ql').innerHTML='<span style="font-size:12px;color:var(--t3)">No matches in next 4 days</span>';
     return;
   }
+
   let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>',last='';
   for(const m of relevant){
     const d=new Date(m.date+'T12:00:00');
     const lbl=d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
     if(lbl!==last){h+=`<div class="ql-day">${lbl}</div>`;last=lbl;}
-    // Show label from title (e.g. "Argentina vs. Austria") or fallback to slug codes
-    const label = m.title || m.slug.replace(/^fifwc-/,'').replace(/-\d{4}-\d{2}-\d{2}$/,'').toUpperCase();
+    const label=m.title||m.slug.replace(/^fifwc-/,'').replace(/-\d{4}-\d{2}-\d{2}$/,'').toUpperCase();
     h+=`<button class="qlb" onclick="ls('${m.slug}')">${label}</button>`;
   }
   document.getElementById('ql').innerHTML=h;
 
-  const firstToday=relevant.find(m=>new Date(m.date+'T12:00:00').getTime()===today.getTime());
-  if(firstToday) document.getElementById('si').value=firstToday.slug;
+  // Default input: first match that is still active (from dynamic API),
+  // or first match of today/tomorrow if using fallback.
+  // We pick the first in `relevant` since the dynamic API returns only
+  // active (unresolved) events — so relevant[0] is always the next upcoming game.
+  if(relevant.length){
+    document.getElementById('si').value=relevant[0].slug;
+    go(); // auto-load the first upcoming match
+  }
 }
 
 async function loadSchedule() {
@@ -517,7 +527,7 @@ function pickScore(el,idx){
   showEP(s);
   document.getElementById('epbox').scrollIntoView({behavior:'smooth',block:'nearest'});}
 
-go();
+// go() is called by loadSchedule() once the first slug is set
 </script>
 </body>
 </html>
