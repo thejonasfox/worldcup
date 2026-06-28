@@ -189,13 +189,87 @@ async function loadSchedule() {
     const lbl=d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
     if(lbl!==last){h+=`<div class="ql-day">${lbl}</div>`;last=lbl;}
     const label=m.title||m.slug.replace(/^fifwc-/,'').replace(/-\d{4}-\d{2}-\d{2}$/,'').toUpperCase();
-    h+=`<button class="qlb" onclick="ls('${m.slug}')">${label}</button>`;
+    // Each button gets an id so we can update it with the best pick later
+    const btnId='qlb-'+m.slug;
+    h+=`<button id="${btnId}" class="qlb" onclick="ls('${m.slug}')">${label}<span class="qlb-pick" id="${btnId}-pick" style="display:none;margin-left:6px;font-size:11px;font-weight:600;color:var(--blue);background:var(--bluebg);border-radius:4px;padding:1px 5px"></span></button>`;
   }
   ql.innerHTML=h;
 
   // Auto-load the first upcoming match
   document.getElementById('si').value = toShow[0].slug;
   go();
+
+  // Fetch best pick for all matches in background (parallel, non-blocking)
+  fetchAllBestPicks(toShow);
+}
+
+async function fetchAllBestPicks(matches) {
+  // Fetch in parallel but stagger slightly to avoid hammering the worker
+  await Promise.all(matches.map((m, i) => new Promise(resolve => {
+    setTimeout(async () => {
+      try {
+        const best = await getBestPick(m.slug);
+        if(best) {
+          const el = document.getElementById('qlb-'+m.slug+'-pick');
+          if(el) {
+            el.textContent = best;
+            el.style.display = 'inline';
+          }
+        }
+      } catch(e) { /* silently skip */ }
+      resolve();
+    }, i * 300); // stagger by 300ms each
+  })));
+}
+
+async function getBestPick(slug) {
+  const exactSlug = slug.endsWith('-exact-score') ? slug : slug + '-exact-score';
+  const baseSlug  = slug.endsWith('-exact-score') ? slug.slice(0,-13) : slug;
+  const slugParts = baseSlug.match(/fifwc-([a-z]+)-([a-z]+)-/i);
+  const homeCode  = slugParts ? slugParts[1].toLowerCase() : '';
+  const awayCode  = slugParts ? slugParts[2].toLowerCase() : '';
+
+  // Fetch exact-score markets
+  const ev = await proxyFetch(`/events/slug/${exactSlug}`);
+  if(!ev || ev.error) return null;
+  let rawScores = extractScores(ev.markets || []);
+  if(!rawScores.length && ev.id) {
+    const mkts = await proxyFetch(`/markets?event_id=${ev.id}&limit=300`);
+    if(Array.isArray(mkts)) rawScores = extractScores(mkts);
+  }
+  if(!rawScores.length) return null;
+
+  // Fetch moneyline
+  let ml = {home:0.5,draw:0.25,away:0.25,total_goals:2.5};
+  try {
+    const mainEv = await proxyFetch(`/events/slug/${baseSlug}`);
+    for(const m of (mainEv.markets||[])) {
+      const q=(m.question||'').toLowerCase();
+      try {
+        const outcomes=JSON.parse(m.outcomes||'[]'),prices=JSON.parse(m.outcomePrices||'[]').map(Number);
+        const yi=outcomes.findIndex(o=>o.toLowerCase()==='yes'),p=prices[yi>=0?yi:0]||0;
+        if(q.includes('draw'))ml.draw=p;
+        else if(q.includes('win')){if(homeCode&&q.includes(homeCode))ml.home=p;else if(awayCode&&q.includes(awayCode))ml.away=p;}
+        if(q.includes('2.5')&&q.includes('over')){const yi2=outcomes.findIndex(o=>o.toLowerCase()==='yes');if(yi2>=0)ml.total_goals=2.5+(prices[yi2]-0.5)*2;}
+      } catch{}
+    }
+  } catch{}
+
+  // Build distribution and find best pick
+  const marketProbs={};
+  for(const s of rawScores) marketProbs[`${s.home}-${s.away}`]=s.prob;
+  const grid = buildScoreDistribution(marketProbs, ml, ml.total_goals);
+  const allScores = Object.entries(grid)
+    .filter(([,p])=>p>0.0001)
+    .map(([key,p])=>{const[h,a]=key.split('-').map(Number);return{label:key,home:h,away:a,prob:p};});
+
+  let bestEP=-1, bestLabel=null;
+  for(const pred of allScores){
+    let ep=0;
+    for(const a of allScores) ep+=pts([pred.home,pred.away],[a.home,a.away])*a.prob;
+    if(ep>bestEP){bestEP=ep;bestLabel=pred.label;}
+  }
+  return bestLabel;
 }
 
 function ls(s){document.getElementById('si').value=s;go();}
