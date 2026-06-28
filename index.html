@@ -102,47 +102,73 @@ button:hover{background:var(--bg2)}button:active{transform:scale(.98)}
 <script>
 const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 
-// ── Dynamic schedule from Polymarket ────────────────────────────────────────
-// Fetches all active World Cup match events (tag_id=102232) and builds the
-// quick-pills dynamically — works for group stage, knockouts, everything.
-
-const WC_TAG_ID = 102232;
-// Fallback hardcoded slugs in case the API call fails
+// ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
+// Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
-  ['2026-06-24','che','can'],['2026-06-24','bih','qat'],['2026-06-24','sco','bra'],
-  ['2026-06-24','mar','hai'],['2026-06-24','cze','mex'],['2026-06-24','rsa','kor'],
-  ['2026-06-25','ecu','ger'],['2026-06-25','civ','cur'],['2026-06-25','jpn','swe'],['2026-06-25','tun','ned'],
-  ['2026-06-26','tur','usa'],['2026-06-26','par','aus'],['2026-06-26','nor','fra'],['2026-06-26','sen','irq'],
-  ['2026-06-27','arg','sco'],['2026-06-27','bra','mar'],['2026-06-27','ger','jpn'],['2026-06-27','swe','tun'],
-  ['2026-06-27','aut','jor'],['2026-06-27','alg','nzl'],
-  ['2026-06-28','usa','par'],['2026-06-28','aus','tur'],['2026-06-28','eng','pan'],['2026-06-28','hrv','gha'],
-  ['2026-06-28','prt','col'],['2026-06-28','uzb','cdr'],
+  // Group stage remaining
+  ['2026-06-27','pan','eng'],['2026-06-27','hrv','gha'],['2026-06-27','col','prt'],['2026-06-27','cdr','uzb'],
+  ['2026-06-27','jor','arg'],['2026-06-27','alg','nzl'],['2026-06-27','che','qat'],['2026-06-27','bih','can'],
+  ['2026-06-28','arg','sco'],['2026-06-28','bra','mar'],['2026-06-28','ger','jpn'],['2026-06-28','swe','tun'],
+  ['2026-06-28','usa','par'],['2026-06-28','aus','tur'],['2026-06-28','prt','col'],['2026-06-28','uzb','cdr'],
   ['2026-06-29','qat','sco'],['2026-06-29','bra','hai'],['2026-06-29','kor','mex'],['2026-06-29','rsa','cze'],
   ['2026-06-29','ned','jpn'],['2026-06-29','tun','swe'],
   ['2026-06-30','can','bih'],['2026-06-30','che','qat'],['2026-06-30','ger','cur'],['2026-06-30','ecu','civ'],
 ];
 
-function renderQuickPills(matches) {
-  // matches = [{slug, title, date, active?}, ...]
-  // When coming from the dynamic API, active=true means not yet resolved.
-  // When coming from fallback, we filter by date only.
+async function proxyFetch(path){
+  const r=await fetch(`${WORKER_URL}/proxy?path=${encodeURIComponent(path)}`);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── Dynamic schedule: fetch live from Polymarket via worker ──────────────────
+async function loadSchedule() {
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const now=new Date();
-  const today=new Date(now); today.setHours(0,0,0,0);
-  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+4);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+5);
 
-  // Show matches in the next 4 days — sort by date
+  let matches = [];
+
+  try {
+    // Fetch active WC events through the worker (avoids direct CORS/403 issues)
+    const events = await proxyFetch(`/events?tag_id=102232&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
+    if(!Array.isArray(events) || !events.length) throw new Error('empty response');
+
+    const seen = new Set();
+    for(const e of events) {
+      const slug = e.slug || '';
+      // Only match slugs: fifwc-XXX-YYY-YYYY-MM-DD
+      if(!/^fifwc-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2}$/.test(slug)) continue;
+      if(seen.has(slug)) continue;
+      seen.add(slug);
+      const dateMatch = slug.match(/(\d{4}-\d{2}-\d{2})$/);
+      if(!dateMatch) continue;
+      const title = (e.title||'').replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'').trim();
+      matches.push({ slug, title, date: dateMatch[1] });
+    }
+    console.log(`Dynamic schedule: ${matches.length} matches loaded`);
+  } catch(err) {
+    console.warn('Dynamic schedule failed, using fallback:', err.message);
+    matches = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
+      slug: `fifwc-${h}-${a}-${date}`,
+      title: `${h.toUpperCase()} vs ${a.toUpperCase()}`,
+      date
+    }));
+  }
+
+  // Filter to today + next 4 days, sort by date
   const relevant = matches
     .filter(m => { const d=new Date(m.date+'T12:00:00'); return d>=today && d<cutoff; })
     .sort((a,b) => a.date.localeCompare(b.date));
 
+  const ql = document.getElementById('ql');
   if(!relevant.length){
-    document.getElementById('ql').innerHTML='<span style="font-size:12px;color:var(--t3)">No matches in next 4 days</span>';
+    ql.innerHTML='<span style="font-size:12px;color:var(--t3)">No upcoming matches found</span>';
     return;
   }
 
-  let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>',last='';
+  let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>', last='';
   for(const m of relevant){
     const d=new Date(m.date+'T12:00:00');
     const lbl=d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
@@ -150,55 +176,12 @@ function renderQuickPills(matches) {
     const label=m.title||m.slug.replace(/^fifwc-/,'').replace(/-\d{4}-\d{2}-\d{2}$/,'').toUpperCase();
     h+=`<button class="qlb" onclick="ls('${m.slug}')">${label}</button>`;
   }
-  document.getElementById('ql').innerHTML=h;
+  ql.innerHTML=h;
 
-  // Default input: first match that is still active (from dynamic API),
-  // or first match of today/tomorrow if using fallback.
-  // We pick the first in `relevant` since the dynamic API returns only
-  // active (unresolved) events — so relevant[0] is always the next upcoming game.
-  if(relevant.length){
-    document.getElementById('si').value=relevant[0].slug;
-    go(); // auto-load the first upcoming match
-  }
+  // Auto-load the first upcoming match
+  document.getElementById('si').value = relevant[0].slug;
+  go();
 }
-
-async function loadSchedule() {
-  try {
-    // Fetch all active WC match events — filter to those with fifwc- slug pattern
-    const path = `/events?tag_id=${WC_TAG_ID}&active=true&closed=false&limit=100&order=end_date_min&ascending=true`;
-    const events = await proxyFetch(path);
-    if(!Array.isArray(events) || !events.length) throw new Error('empty');
-
-    const matches = events
-      .filter(e => /^fifwc-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2}$/.test(e.slug||''))
-      .map(e => {
-        const dateMatch = (e.slug||'').match(/(\d{4}-\d{2}-\d{2})$/);
-        // Clean up title: remove " - Exact Score" etc, keep just "Team A vs. Team B"
-        const title = (e.title||'')
-          .replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'')
-          .trim();
-        return { slug: e.slug, title, date: dateMatch?dateMatch[1]:'' };
-      })
-      .filter(m => m.date);
-
-    // Deduplicate by slug (API may return multiple events per match for different market types)
-    const seen = new Set();
-    const deduped = matches.filter(m => { if(seen.has(m.slug)) return false; seen.add(m.slug); return true; });
-    renderQuickPills(deduped);
-  } catch(e) {
-    console.warn('Dynamic schedule failed, using fallback:', e);
-    // Use fallback static list
-    const fallback = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
-      slug: `fifwc-${h}-${a}-${date}`,
-      title: `${h.toUpperCase()} vs ${a.toUpperCase()}`,
-      date
-    }));
-    renderQuickPills(fallback);
-  }
-}
-
-// Load schedule after page init (non-blocking)
-loadSchedule();
 
 function ls(s){document.getElementById('si').value=s;go();}
 function getSlug(v){v=v.trim();const m=v.match(/fifwc-[a-z0-9-]+/i);return m?m[0].toLowerCase():v.replace(/\/$/,'').split('/').pop().toLowerCase();}
@@ -210,13 +193,6 @@ function mtype(p,a){
   if(sgn(p[0]-p[1])===sgn(a[0]-a[1]))return'winner';
   return null;}
 function pts(p,a){const t=mtype(p,a);return t==='exact'?4:t==='goalDiff'?3:t==='winner'?2:0;}
-
-// ── Polymarket data fetching ──────────────────────────────────────────────────
-async function proxyFetch(path){
-  const r=await fetch(`${WORKER_URL}/proxy?path=${encodeURIComponent(path)}`);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
 
 function extractScores(markets){
   const scores=[];
@@ -247,98 +223,61 @@ function extractScores(markets){
   return scores;
 }
 
-// ── Poisson model ─────────────────────────────────────────────────────────────
 function poissonPMF(lam,k){if(lam<=0)return k===0?1:0;let v=Math.exp(-lam);for(let i=1;i<=k;i++)v*=lam/i;return v;}
 
 function buildScoreDistribution(marketProbs, ml, totalGoals) {
-  // Strategy:
-  // 1. Use raw market prices for listed scores as-is (they are live, liquid, correct)
-  // 2. Use Poisson only to estimate the shape of unlisted scores
-  // 3. Unlisted scores share whatever probability mass remains: max(0, 1 - sum(listed))
-  // 4. If listed prices sum >= 1 (common during live games), unlisted scores get 0
-
   const MAX = 8;
-
-  // Step 1: compute raw Poisson grid from moneyline for shape only
-  const mu = Math.max(totalGoals, 1.5);
-  const hw = ml.home + 0.5 * ml.draw, aw = ml.away + 0.5 * ml.draw;
-  const ratio = aw > 0 ? hw / aw : 1;
-  const mu_a = mu / (1 + ratio), mu_h = mu - mu_a;
-  const poissonGrid = {};
-  let poissonTotal = 0;
-  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
-    const p = poissonPMF(mu_h, h) * poissonPMF(mu_a, a);
-    poissonGrid[`${h}-${a}`] = p;
-    poissonTotal += p;
-  }
-  // Normalise Poisson grid to sum to 1
-  for(const k in poissonGrid) poissonGrid[k] /= poissonTotal;
-
-  // Step 2: listed scores use their raw market prices
-  const listedSum = Object.values(marketProbs).reduce((s, v) => s + v, 0);
-
-  // Step 3: remaining mass for unlisted scores
+  const listedSum = Object.values(marketProbs).reduce((s,v)=>s+v,0);
   const unlistedMass = Math.max(0, 1 - listedSum);
+  const maxML = Math.max(ml.home, ml.draw, ml.away);
+  const isLive = maxML > 0.85 || listedSum > 0.90;
 
-  // Step 4: Poisson weight of all unlisted scores (for proportional allocation)
-  let unlistedPoissonSum = 0;
-  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
-    if(!marketProbs[`${h}-${a}`]) unlistedPoissonSum += poissonGrid[`${h}-${a}`];
-  }
-
-  // Step 5: build final grid
   const grid = {};
-  for(let h = 0; h <= MAX; h++) for(let a = 0; a <= MAX; a++) {
-    const key = `${h}-${a}`;
-    if(marketProbs[key] !== undefined) {
-      // Listed score: use raw market price
-      grid[key] = marketProbs[key];
-    } else {
-      // Unlisted score: proportional share of remaining mass
-      grid[key] = unlistedMass > 0 && unlistedPoissonSum > 0
-        ? (poissonGrid[key] / unlistedPoissonSum) * unlistedMass
-        : 0;
+  if(!isLive && unlistedMass > 0.02) {
+    const mu=Math.max(totalGoals,1.5);
+    const hw=ml.home+0.5*ml.draw,aw=ml.away+0.5*ml.draw,ratio=aw>0?hw/aw:1;
+    const mu_a=mu/(1+ratio),mu_h=mu-mu_a;
+    const pg={};let upSum=0;
+    for(let h=0;h<=MAX;h++)for(let a=0;a<=MAX;a++){
+      const key=`${h}-${a}`,p=poissonPMF(mu_h,h)*poissonPMF(mu_a,a);
+      pg[key]=p;if(!marketProbs[key])upSum+=p;
     }
+    for(let h=0;h<=MAX;h++)for(let a=0;a<=MAX;a++){
+      const key=`${h}-${a}`;
+      grid[key]=marketProbs[key]!==undefined?marketProbs[key]:(upSum>0?(pg[key]/upSum)*unlistedMass:0);
+    }
+  } else {
+    for(let h=0;h<=MAX;h++)for(let a=0;a<=MAX;a++)grid[`${h}-${a}`]=marketProbs[`${h}-${a}`]||0;
   }
   return grid;
 }
 
-// ── Main fetch + model pipeline ───────────────────────────────────────────────
 async function go(){
   const sl=getSlug(document.getElementById('si').value);
+  if(!sl){st('Enter a match slug or click a quick-match button.','');return;}
   const exactSlug=sl.endsWith('-exact-score')?sl:sl+'-exact-score';
   const baseSlug=sl.endsWith('-exact-score')?sl.slice(0,-13):sl;
-  st('<span class="spin"></span>Fetching Polymarket data…','load');
   document.getElementById('app').style.display='none';
 
-  // 1. Fetch exact-score event
   let rawScores=[],evTitle='',evVolume=0;
-  st('<span class="spin"></span>Step 1/3 — Contacting Cloudflare worker…','load');
   try{
-    st('<span class="spin"></span>Step 1/3 — Fetching exact-score market from Polymarket…','load');
+    st('<span class="spin"></span>Fetching exact-score market…','load');
     const ev=await proxyFetch(`/events/slug/${exactSlug}`);
     evTitle=ev.title||'';evVolume=ev.volume||0;
-    if(ev.error){st(`⚠ Worker reached Polymarket but got an error: ${ev.error}`,'err');return;}
-    st('<span class="spin"></span>Step 1/3 — Parsing exact-score markets…','load');
+    if(ev.error){st(`⚠ Polymarket error: ${ev.error}`,'err');return;}
     rawScores=extractScores(ev.markets||[]);
     if(!rawScores.length&&ev.id){
-      st('<span class="spin"></span>Step 1/3 — Fetching paginated markets…','load');
+      st('<span class="spin"></span>Fetching paginated markets…','load');
       const mkts=await proxyFetch(`/markets?event_id=${ev.id}&limit=300`);
       if(Array.isArray(mkts))rawScores=extractScores(mkts);
     }
-    st(`Step 1/3 ✓ — Got event data (${(ev.markets||[]).length} markets embedded, ${rawScores.length} scores found)`,'load');
   }catch(e){
-    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
-      st(`⚠ Network error — could not reach the Cloudflare worker. Check your internet connection.<br><small style="color:var(--t3)">Worker URL: ${WORKER_URL}</small>`,'err');
-    } else {
-      st(`⚠ Worker error: ${e.message}`,'err');
-    }
+    st(`⚠ Could not reach Polymarket via worker: ${e.message}<br><small style="color:var(--t3)">Check internet connection · Worker: ${WORKER_URL}</small>`,'err');
     return;
   }
-  if(!rawScores.length){st(`⚠ Worker and Polymarket reachable, but no exact-score markets found for "${sl}". The match may not have this market yet.`,'err');return;}
+  if(!rawScores.length){st(`⚠ No exact-score markets found for "${sl}". Match may not have this market yet.`,'err');return;}
 
-  // 2. Fetch moneyline from main event
-  st('<span class="spin"></span>Step 2/3 — Fetching moneyline odds…','load');
+  st('<span class="spin"></span>Fetching moneyline…','load');
   const slugParts=baseSlug.match(/fifwc-([a-z]+)-([a-z]+)-/i);
   const homeCode=slugParts?slugParts[1].toLowerCase():'';
   const awayCode=slugParts?slugParts[2].toLowerCase():'';
@@ -365,8 +304,7 @@ async function go(){
     }
   }catch(e){/* use default ML */}
 
-  st('<span class="spin"></span>Step 3/3 — Fitting Poisson model…','load');
-  // 3. Fit Poisson and compute EP
+  st('<span class="spin"></span>Computing expected points…','load');
   const marketProbs={};
   for(const s of rawScores)marketProbs[`${s.home}-${s.away}`]=s.prob;
   const listedSum=Object.values(marketProbs).reduce((s,v)=>s+v,0);
@@ -382,12 +320,13 @@ async function go(){
     return{...pred,ep,bd};
   }).sort((a,b)=>b.ep-a.ep);
 
-  const listedPct=(listedSum*100).toFixed(0);const unlistedNote=listedSum>=1?' · market sum ≥100% (live game), unlisted scores excluded':` · ${(100-listedSum*100).toFixed(0)}% mass to unlisted scores`;
-  st(`✓ Loaded · ${evTitle||sl} · ${rawScores.length} listed + ${scored.length-rawScores.length} Poisson scores${unlistedNote}`);
+  const fetchTime=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const liveNote=listedSum>=1?'live game':'pre-game';
+  const unlistedCount=scored.filter(s=>!s.market_prob).length;
+  st(`✓ ${fetchTime} · ${evTitle||sl} · ${rawScores.length} Polymarket scores + ${unlistedCount} Poisson · ${liveNote}`);
   render(scored,homeName,awayName,evVolume);
 }
 
-// ── Render ────────────────────────────────────────────────────────────────────
 function render(scores,home,away,vol){
   const best=scores[0],vs=vol?'$'+(+vol/1e6).toFixed(1)+'M':'—';
   const listed=scores.filter(s=>s.market_prob>0).length;
@@ -421,7 +360,7 @@ function render(scores,home,away,vol){
         <div class="bars" id="bars"></div>
       </div>
       <div id="tab-grid" class="tp">
-        <div class="sl">Score matrix — home goals (rows, ${home}) vs away goals (cols, ${away}) <span style="font-size:10px;font-weight:400;color:var(--t3)">● Polymarket · click cell</span></div>
+        <div class="sl">Score matrix — home (rows, ${home}) vs away (cols, ${away}) <span style="font-size:10px;font-weight:400;color:var(--t3)">● Polymarket · click cell</span></div>
         <div id="grid"></div>
       </div>
     </div>`;
@@ -527,7 +466,7 @@ function pickScore(el,idx){
   showEP(s);
   document.getElementById('epbox').scrollIntoView({behavior:'smooth',block:'nearest'});}
 
-// go() is called by loadSchedule() once the first slug is set
+loadSchedule();
 </script>
 </body>
 </html>
