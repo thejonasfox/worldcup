@@ -137,25 +137,30 @@ async function loadSchedule() {
   let matches = [];
 
   try {
-    // Fetch active WC events through the worker (avoids direct CORS/403 issues)
+    // Fetch active WC events — log slugs so we can discover knockout slug format
     const events = await proxyFetch(`/events?tag_id=102232&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
     if(!Array.isArray(events) || !events.length) throw new Error('empty response');
+
+    // Log first 20 slugs to console so we can see what format knockouts use
+    console.log('WC event slugs:', events.slice(0,20).map(e=>e.slug).join(', '));
 
     const seen = new Set();
     for(const e of events) {
       const slug = e.slug || '';
-      // Match any fifwc slug that ends in a date: fifwc-*-YYYY-MM-DD
-      // Covers group stage (fifwc-arg-aut-...) AND knockouts (fifwc-r32-..., etc.)
-      const dateMatch = slug.match(/^fifwc-.+-(\d{4}-\d{2}-\d{2})$/);
+      const title = (e.title||'').replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'').trim();
+
+      // Try to extract a date from anywhere in the slug
+      const dateMatch = slug.match(/(\d{4}-\d{2}-\d{2})/);
       if(!dateMatch) continue;
+      // Skip non-match events (futures, group advancement, etc.)
+      // Keep only events whose title looks like "Team A vs. Team B"
+      if(!title.match(/\s+vs\.?\s+/i)) continue;
       if(seen.has(slug)) continue;
       seen.add(slug);
-      const title = (e.title||'').replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'').trim();
       matches.push({ slug, title, date: dateMatch[1] });
     }
-    console.log(`Dynamic schedule: ${matches.length} fifwc matches from ${events.length} events`);
-    // If dynamic returned nothing useful, fall through to fallback
-    if(!matches.length) throw new Error('no fifwc slugs found in response');
+    console.log(`Dynamic schedule: ${matches.length} match events from ${events.length} total`);
+    if(!matches.length) throw new Error('no match events found');
   } catch(err) {
     console.warn('Dynamic schedule failed, using fallback:', err.message);
     matches = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
