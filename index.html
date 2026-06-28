@@ -144,18 +144,20 @@ async function loadSchedule() {
     const seen = new Set();
     for(const e of events) {
       const slug = e.slug || '';
-      // Only match slugs: fifwc-XXX-YYY-YYYY-MM-DD
-      if(!/^fifwc-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2}$/.test(slug)) continue;
+      // Match any fifwc slug that ends in a date: fifwc-*-YYYY-MM-DD
+      // Covers group stage (fifwc-arg-aut-...) AND knockouts (fifwc-r32-..., etc.)
+      const dateMatch = slug.match(/^fifwc-.+-(\d{4}-\d{2}-\d{2})$/);
+      if(!dateMatch) continue;
       if(seen.has(slug)) continue;
       seen.add(slug);
-      const dateMatch = slug.match(/(\d{4}-\d{2}-\d{2})$/);
-      if(!dateMatch) continue;
       const title = (e.title||'').replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'').trim();
       matches.push({ slug, title, date: dateMatch[1] });
     }
-    console.log(`Dynamic schedule: ${matches.length} matches loaded`);
+    console.log(`Dynamic schedule: ${matches.length} fifwc matches from ${events.length} events`);
+    // If dynamic returned nothing useful, fall through to fallback
+    if(!matches.length) throw new Error('no fifwc slugs found in response');
   } catch(err) {
-    console.warn('Dynamic schedule failed, using fallback:', err.message, err);
+    console.warn('Dynamic schedule failed, using fallback:', err.message);
     matches = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
       slug: `fifwc-${h}-${a}-${date}`,
       title: `${h.toUpperCase()} vs ${a.toUpperCase()}`,
@@ -163,19 +165,26 @@ async function loadSchedule() {
     }));
   }
 
-  // Filter to today + next 4 days, sort by date
+  // Show all future matches up to cutoff; for fallback show all future regardless of cutoff
   const relevant = matches
-    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d>=today && d<cutoff; })
+    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d>=today; })
+    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d<cutoff; })
     .sort((a,b) => a.date.localeCompare(b.date));
 
+  // If still nothing (e.g. all fallback dates passed), show everything from fallback
+  const toShow = relevant.length ? relevant :
+    SCHEDULE_FALLBACK.map(([date,h,a])=>({slug:`fifwc-${h}-${a}-${date}`,title:`${h.toUpperCase()} vs ${a.toUpperCase()}`,date}))
+      .filter(m=>new Date(m.date+'T12:00:00')>=today)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+
   const ql = document.getElementById('ql');
-  if(!relevant.length){
-    ql.innerHTML='<span style="font-size:12px;color:var(--t3)">No upcoming matches found</span>';
+  if(!toShow.length){
+    ql.innerHTML='<span style="font-size:12px;color:var(--t3)">No upcoming matches — paste a slug manually</span>';
     return;
   }
 
   let h='<span style="font-size:12px;color:var(--t3)">Quick:</span>', last='';
-  for(const m of relevant){
+  for(const m of toShow){
     const d=new Date(m.date+'T12:00:00');
     const lbl=d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
     if(lbl!==last){h+=`<div class="ql-day">${lbl}</div>`;last=lbl;}
@@ -185,7 +194,7 @@ async function loadSchedule() {
   ql.innerHTML=h;
 
   // Auto-load the first upcoming match
-  document.getElementById('si').value = relevant[0].slug;
+  document.getElementById('si').value = toShow[0].slug;
   go();
 }
 
