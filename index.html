@@ -105,20 +105,9 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
-  // Jun 27 (may still be active)
-  ['2026-06-27','pan','eng'],['2026-06-27','hrv','gha'],['2026-06-27','col','prt'],['2026-06-27','cdr','uzb'],
-  ['2026-06-27','jor','arg'],['2026-06-27','alg','aut'],
-  // Jun 28
   ['2026-06-28','rsa','can'],
-  // Jun 29
-  ['2026-06-29','bra','jpn'],['2026-06-29','fra','bel'],['2026-06-29','esp','aus'],['2026-06-29','ger','den'],
-  ['2026-06-29','arg','pol'],['2026-06-29','nor','irl'],
-  // Jun 30 (Round of 32 starts)
-  ['2026-06-30','che','ecu'],['2026-06-30','usa','rsa'],['2026-06-30','eng','sen'],['2026-06-30','ned','mex'],
-  // Jul 1
-  ['2026-07-01','fra','can'],['2026-07-01','bra','col'],['2026-07-01','arg','cdr'],['2026-07-01','ger','mar'],
-  // Jul 2
-  ['2026-07-02','esp','nor'],['2026-07-02','prt','jpn'],['2026-07-02','hrv','alg'],['2026-07-02','civ','sco'],
+  ['2026-06-29','bra','jpn'],['2026-06-29','ger','par'],['2026-06-29','nld','mar'],
+  ['2026-06-30','civ','nor'],
 ];
 
 async function proxyFetch(path){
