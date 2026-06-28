@@ -105,6 +105,7 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
+  // Only verified slugs — dynamic API handles the rest
   ['2026-06-28','rsa','can'],
   ['2026-06-29','bra','jpn'],['2026-06-29','ger','par'],['2026-06-29','nld','mar'],
   ['2026-06-30','civ','nor'],
@@ -217,6 +218,7 @@ async function fetchAllBestPicks(matches) {
 }
 
 async function getBestPick(slug) {
+  if(!slug) return null;
   const exactSlug = slug.endsWith('-exact-score') ? slug : slug + '-exact-score';
   const baseSlug  = slug.endsWith('-exact-score') ? slug.slice(0,-13) : slug;
   const slugParts = baseSlug.match(/fifwc-([a-z]+)-([a-z]+)-/i);
@@ -358,7 +360,10 @@ async function go(){
     st(`⚠ Could not reach Polymarket via worker: ${e.message}<br><small style="color:var(--t3)">Check internet connection · Worker: ${WORKER_URL}</small>`,'err');
     return;
   }
-  if(!rawScores.length){st(`⚠ No exact-score markets found for "${sl}". Match may not have this market yet.`,'err');return;}
+  if(!rawScores.length){
+    st(`⚠ No exact-score markets found for "${sl}".<br><small style="color:var(--t3)">This match may not have an exact-score market yet, or the slug format changed. Try pasting the URL directly from polymarket.com/sports/world-cup/games</small>`,'err');
+    return;
+  }
 
   st('<span class="spin"></span>Fetching moneyline…','load');
   const slugParts=baseSlug.match(/fifwc-([a-z]+)-([a-z]+)-/i);
