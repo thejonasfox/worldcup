@@ -105,10 +105,12 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
-  // Only verified slugs — dynamic API handles the rest
+  // All verified directly from polymarket.com/sports/world-cup/games
   ['2026-06-28','rsa','can'],
   ['2026-06-29','bra','jpn'],['2026-06-29','ger','par'],['2026-06-29','nld','mar'],
-  ['2026-06-30','civ','nor'],
+  ['2026-06-30','civ','nor'],['2026-06-30','fra','swe'],
+  ['2026-07-01','usa','bih'],
+  ['2026-07-03','aus','egy'],
 ];
 
 async function proxyFetch(path){
@@ -128,7 +130,7 @@ async function loadSchedule() {
 
   try {
     // Fetch active WC events — log slugs so we can discover knockout slug format
-    const events = await proxyFetch(`/events?tag_id=102232&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
+    const events = await proxyFetch(`/events?tag_slug=2026-fifa-world-cup&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
     if(!Array.isArray(events) || !events.length) throw new Error('empty response');
 
     // Log first 20 slugs to console so we can see what format knockouts use
