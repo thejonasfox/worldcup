@@ -104,28 +104,137 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
-const SCHEDULE_FALLBACK = [
-  // ALL verified directly from polymarket.com URLs — Jul 1 2026
-  // Jul 1
-  ['2026-07-01','eng','cdr'],
-  ['2026-07-01','bel','sen'],
-  ['2026-07-01','usa','bih'],
-  // Jul 2
-  ['2026-07-02','esp','aut'],
-  ['2026-07-02','prt','hrv'],
-  ['2026-07-02','che','alg'],
-  ['2026-07-02','aus','egy'],
-  ['2026-07-02','arg','cpv'],
-  ['2026-07-02','col','gha'],
-  ['2026-07-02','can','mar'],
-  ['2026-07-02','par','fra'],
-  ['2026-07-02','bra','nor'],
+// ── Team name → Polymarket slug code mapping ─────────────────────────────────
+const TEAM_CODES = {
+  'Mexico':'mex','South Africa':'rsa','Korea Republic':'kor','Czechia':'cze',
+  'Canada':'can','Bosnia and Herzegovina':'bih','United States':'usa','Paraguay':'par',
+  'Haiti':'hai','Scotland':'sco','Australia':'aus','Turkiye':'tur',
+  'Brazil':'bra','Morocco':'mar','Qatar':'qat','Switzerland':'che',
+  "Cote d'Ivoire":'civ','Ecuador':'ecu','Germany':'ger','Curacao':'cur',
+  'Netherlands':'nld','Japan':'jpn','Sweden':'swe','Tunisia':'tun',
+  'Saudi Arabia':'ksa','Uruguay':'uru','Spain':'esp','Cabo Verde':'cpv',
+  'IR Iran':'irn','New Zealand':'nzl','Belgium':'bel','Egypt':'egy',
+  'France':'fra','Senegal':'sen','Iraq':'irq','Norway':'nor',
+  'Argentina':'arg','Algeria':'alg','Austria':'aut','Jordan':'jor',
+  'Ghana':'gha','Panama':'pan','England':'eng','Croatia':'hrv',
+  'Portugal':'prt','Congo DR':'cdr','Uzbekistan':'uzb','Colombia':'col',
+  'Denmark':'den','Cameroon':'cmr','Netherlands':'ned','Albania':'alb',
+  'Ivory Coast':'civ','DR Congo':'cdr','United States':'usa',
+};
+
+const STAGE_LABELS = {
+  'group-stage': 'Group Stage',
+  'round-of-32': 'Round of 32',
+  'round-of-16': 'Round of 16',
+  'quarter-finals': 'Quarter Finals',
+  'semi-finals': 'Semi Finals',
+  'third-place': 'Third Place',
+  'final': 'Final',
+};
+
+const STAGE_ORDER = [
+  'group-stage','round-of-32','round-of-16',
+  'quarter-finals','semi-finals','third-place','final'
 ];
 
-async function proxyFetch(path){
-  const r=await fetch(`${WORKER_URL}/proxy?path=${encodeURIComponent(path)}`);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+function teamCode(name) {
+  if(!name) return '???';
+  if(TEAM_CODES[name]) return TEAM_CODES[name];
+  // Fallback: first 3 letters lowercased
+  return name.replace(/[^a-zA-Z]/g,'').slice(0,3).toLowerCase();
+}
+
+async function loadSchedule() {
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const yesterday=new Date(today); yesterday.setDate(yesterday.getDate()-1);
+  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+8);
+
+  let fixtures = [];
+  try {
+    const r = await fetch('https://www.thestatsapi.com/world-cup/data/fixtures.json');
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    fixtures = data.fixtures || [];
+    console.log(`Loaded ${fixtures.length} fixtures from TheStatsAPI`);
+  } catch(err) {
+    console.warn('TheStatsAPI failed:', err.message);
+  }
+
+  // Filter to upcoming window
+  const upcoming = fixtures.filter(f => {
+    const d = new Date(f.date+'T23:59:59');
+    return d > yesterday && d < cutoff;
+  });
+
+  // Group by stage
+  const byStage = {};
+  for(const f of upcoming) {
+    const s = f.stage || 'group-stage';
+    if(!byStage[s]) byStage[s] = [];
+    const hCode = teamCode(f.homeTeam);
+    const aCode = teamCode(f.awayTeam);
+    const slug = `fifwc-${hCode}-${aCode}-${f.date}`;
+    byStage[s].push({
+      slug, date: f.date,
+      title: `${f.homeTeam} vs ${f.awayTeam}`,
+      homeTeam: f.homeTeam, awayTeam: f.awayTeam,
+    });
+  }
+
+  const ql = document.getElementById('ql');
+
+  if(!Object.keys(byStage).length) {
+    ql.innerHTML='<span style="font-size:12px;color:var(--t3)">No upcoming matches found</span>';
+    // still auto-load from fallback
+    const fb = [
+      ['2026-07-01','eng','cdr'],['2026-07-01','bel','sen'],['2026-07-01','usa','bih'],
+      ['2026-07-02','esp','aut'],['2026-07-02','prt','hrv'],['2026-07-02','che','alg'],
+      ['2026-07-02','aus','egy'],['2026-07-02','arg','cpv'],['2026-07-02','col','gha'],
+      ['2026-07-02','can','mar'],['2026-07-02','par','fra'],['2026-07-02','bra','nor'],
+    ].filter(([d])=>new Date(d+'T23:59:59')>yesterday);
+    if(fb.length){
+      document.getElementById('si').value=`fifwc-${fb[0][1]}-${fb[0][2]}-${fb[0][0]}`;
+      go();
+    }
+    return;
+  }
+
+  // Render by stage in order
+  let html = '<span style="font-size:12px;color:var(--t3)">Quick:</span>';
+  let firstSlug = null;
+
+  for(const stage of STAGE_ORDER) {
+    const matches = byStage[stage];
+    if(!matches || !matches.length) continue;
+    html += `<div class="ql-day" style="margin-top:8px;font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;width:100%">${STAGE_LABELS[stage]||stage}</div>`;
+
+    // Group by date within stage
+    const byDate = {};
+    for(const m of matches) {
+      if(!byDate[m.date]) byDate[m.date] = [];
+      byDate[m.date].push(m);
+    }
+    for(const date of Object.keys(byDate).sort()) {
+      const d = new Date(date+'T12:00:00');
+      const lbl = d.getTime()===today.getTime()?'Today':DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
+      html += `<div class="ql-day">${lbl}</div>`;
+      for(const m of byDate[date]) {
+        if(!firstSlug) firstSlug = m.slug;
+        const btnId = 'qlb-'+m.slug;
+        html += `<button id="${btnId}" class="qlb" onclick="ls('${m.slug}')">${m.homeTeam} vs ${m.awayTeam}<span class="qlb-pick" id="${btnId}-pick" style="display:none;margin-left:6px;font-size:11px;font-weight:600;color:var(--blue);background:var(--bluebg);border-radius:4px;padding:1px 5px"></span></button>`;
+      }
+    }
+  }
+
+  ql.innerHTML = html;
+
+  if(firstSlug) {
+    document.getElementById('si').value = firstSlug;
+    go();
+    fetchAllBestPicks(upcoming);
+  }
 }
 
 // ── Dynamic schedule: fetch live from Polymarket via worker ──────────────────
@@ -133,43 +242,16 @@ async function loadSchedule() {
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const today=new Date(); today.setHours(0,0,0,0);
-  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+5);
+  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()+8);
 
   let matches = [];
 
-  try {
-    // Fetch active WC events — log slugs so we can discover knockout slug format
-    const events = await proxyFetch(`/events?tag_id=102232&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
-    if(!Array.isArray(events) || !events.length) throw new Error('empty response');
-
-    // Log first 20 slugs to console so we can see what format knockouts use
-    console.log('WC event slugs:', events.slice(0,20).map(e=>e.slug).join(', '));
-
-    const seen = new Set();
-    for(const e of events) {
-      const slug = e.slug || '';
-      const title = (e.title||'').replace(/ [-–] (Exact Score|Halftime.*|First.*|Second.*|Total.*|Spread.*)$/i,'').trim();
-
-      // Try to extract a date from anywhere in the slug
-      const dateMatch = slug.match(/(\d{4}-\d{2}-\d{2})/);
-      if(!dateMatch) continue;
-      // Skip non-match events (futures, group advancement, etc.)
-      // Keep only events whose title looks like "Team A vs. Team B"
-      if(!title.match(/\s+vs\.?\s+/i)) continue;
-      if(seen.has(slug)) continue;
-      seen.add(slug);
-      matches.push({ slug, title, date: dateMatch[1] });
-    }
-    console.log(`Dynamic schedule: ${matches.length} match events from ${events.length} total`);
-    if(!matches.length) throw new Error('no match events found');
-  } catch(err) {
-    console.warn('Dynamic schedule failed, using fallback:', err.message);
-    matches = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
-      slug: `fifwc-${h}-${a}-${date}`,
-      title: `${h.toUpperCase()} vs ${a.toUpperCase()}`,
-      date
-    }));
-  }
+  // Use fallback directly — the Polymarket API tag returns futures not match events
+  matches = SCHEDULE_FALLBACK.map(([date,h,a]) => ({
+    slug: `fifwc-${h}-${a}-${date}`,
+    title: `${h.toUpperCase()} vs ${a.toUpperCase()}`,
+    date
+  }));
 
   // Show today and future matches — use yesterday as lower bound so today's games show
   const yesterday=new Date(today); yesterday.setDate(yesterday.getDate()-1);
