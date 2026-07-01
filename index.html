@@ -105,13 +105,21 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
-  // Verified from polymarket.com/sports/world-cup — Jul 1 2026
+  // ALL verified directly from polymarket.com URLs — Jul 1 2026
   // Jul 1
-  ['2026-07-01','eng','cdr'],['2026-07-01','bel','sen'],['2026-07-01','usa','bih'],
-  ['2026-07-01','esp','aut'],['2026-07-01','prt','hrv'],['2026-07-01','che','alg'],
-  // Jul 3
-  ['2026-07-03','aus','egy'],['2026-07-03','arg','cpv'],['2026-07-03','col','gha'],
-  ['2026-07-03','can','mar'],['2026-07-03','par','fra'],['2026-07-03','bra','nor'],
+  ['2026-07-01','eng','cdr'],
+  ['2026-07-01','bel','sen'],
+  ['2026-07-01','usa','bih'],
+  // Jul 2
+  ['2026-07-02','esp','aut'],
+  ['2026-07-02','prt','hrv'],
+  ['2026-07-02','che','alg'],
+  ['2026-07-02','aus','egy'],
+  ['2026-07-02','arg','cpv'],
+  ['2026-07-02','col','gha'],
+  ['2026-07-02','can','mar'],
+  ['2026-07-02','par','fra'],
+  ['2026-07-02','bra','nor'],
 ];
 
 async function proxyFetch(path){
@@ -131,8 +139,7 @@ async function loadSchedule() {
 
   try {
     // Fetch active WC events — log slugs so we can discover knockout slug format
-    // Fetch by searching for fifwc- slug prefix — this finds match events directly
-    const events = await proxyFetch(`/events?slug_prefix=fifwc-&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
+    const events = await proxyFetch(`/events?tag_id=102232&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
     if(!Array.isArray(events) || !events.length) throw new Error('empty response');
 
     // Log first 20 slugs to console so we can see what format knockouts use
@@ -164,16 +171,16 @@ async function loadSchedule() {
     }));
   }
 
-  // Show all future matches up to cutoff; for fallback show all future regardless of cutoff
+  // Show today and future matches — use yesterday as lower bound so today's games show
+  const yesterday=new Date(today); yesterday.setDate(yesterday.getDate()-1);
   const relevant = matches
-    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d>=today; })
-    .filter(m => { const d=new Date(m.date+'T12:00:00'); return d<cutoff; })
+    .filter(m => { const d=new Date(m.date+'T23:59:59'); return d>yesterday && d<cutoff; })
     .sort((a,b) => a.date.localeCompare(b.date));
 
-  // If still nothing (e.g. all fallback dates passed), show everything from fallback
+  // If still nothing, show all fallback games from today onwards
   const toShow = relevant.length ? relevant :
     SCHEDULE_FALLBACK.map(([date,h,a])=>({slug:`fifwc-${h}-${a}-${date}`,title:`${h.toUpperCase()} vs ${a.toUpperCase()}`,date}))
-      .filter(m=>new Date(m.date+'T12:00:00')>=today)
+      .filter(m=>new Date(m.date+'T23:59:59')>yesterday)
       .sort((a,b)=>a.date.localeCompare(b.date));
 
   const ql = document.getElementById('ql');
