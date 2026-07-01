@@ -105,12 +105,13 @@ const WORKER_URL = 'https://worldcup-proxy.crazyjonas.workers.dev';
 // ── Verified slugs from polymarket.com/sports/world-cup/games (updated Jun 27) ──
 // Used as fallback if dynamic API fails. Knockout slugs added as they become known.
 const SCHEDULE_FALLBACK = [
-  // All verified directly from polymarket.com/sports/world-cup/games
-  ['2026-06-28','rsa','can'],
-  ['2026-06-29','bra','jpn'],['2026-06-29','ger','par'],['2026-06-29','nld','mar'],
-  ['2026-06-30','civ','nor'],['2026-06-30','fra','swe'],
-  ['2026-07-01','usa','bih'],
-  ['2026-07-03','aus','egy'],
+  // Verified from polymarket.com/sports/world-cup — Jul 1 2026
+  // Jul 1
+  ['2026-07-01','eng','cdr'],['2026-07-01','bel','sen'],['2026-07-01','usa','bih'],
+  ['2026-07-01','esp','aut'],['2026-07-01','prt','hrv'],['2026-07-01','che','alg'],
+  // Jul 3
+  ['2026-07-03','aus','egy'],['2026-07-03','arg','cpv'],['2026-07-03','col','gha'],
+  ['2026-07-03','can','mar'],['2026-07-03','par','fra'],['2026-07-03','bra','nor'],
 ];
 
 async function proxyFetch(path){
@@ -130,7 +131,8 @@ async function loadSchedule() {
 
   try {
     // Fetch active WC events — log slugs so we can discover knockout slug format
-    const events = await proxyFetch(`/events?tag_slug=2026-fifa-world-cup&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
+    // Fetch by searching for fifwc- slug prefix — this finds match events directly
+    const events = await proxyFetch(`/events?slug_prefix=fifwc-&active=true&closed=false&limit=200&order=end_date_min&ascending=true`);
     if(!Array.isArray(events) || !events.length) throw new Error('empty response');
 
     // Log first 20 slugs to console so we can see what format knockouts use
